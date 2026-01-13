@@ -1,0 +1,134 @@
+### ========================================
+### POSTS API
+### ========================================
+
+### Create a new post (user123)
+POST http://localhost:3001/post
+Content-Type: application/json
+
+{
+  "title": "My First Post",
+  "content": "This is the content of my first post",
+  "sender": "user123"
+}
+
+###
+### Create another post (user456)
+POST http://localhost:3001/post
+Content-Type: application/json
+
+{
+  "title": "Second Post",
+  "content": "This is another post with different content",
+  "sender": "user456"
+}
+
+###
+### Create a third post (user123 again)
+POST http://localhost:3001/post
+Content-Type: application/json
+
+{
+  "title": "Third Post by user123",
+  "content": "Another post from the same user",
+  "sender": "user123"
+}
+
+###
+### GET all posts
+GET http://localhost:3001/post
+
+###
+### GET post by ID (replace <post_id> with actual ID)
+GET http://localhost:3001/post/<post_id>
+
+###
+### GET posts by sender
+GET http://localhost:3001/post?sender=user123
+
+###
+### GET posts by another sender
+GET http://localhost:3001/post?sender=user456
+
+###
+### UPDATE a post (replace <post_id> with actual ID)
+PUT http://localhost:3001/post/<post_id>
+Content-Type: application/json
+
+{
+  "title": "Updated Title",
+  "content": "This content has been updated!",
+  "sender": "user123"
+}
+
+###
+### Test incomplete post (should return 400 error)
+POST http://localhost:3001/post
+Content-Type: application/json
+
+{
+  "title": "Incomplete Post"
+}
+
+### ========================================
+### COMMENTS API
+### ========================================
+
+###
+### Create a comment on a post (replace <post_id> with actual post ID)
+POST http://localhost:3001/comment
+Content-Type: application/json
+
+{
+  "content": "This is a great post!",
+  "sender": "commenter1",
+  "postId": "<post_id>"
+}
+
+###
+### Create another comment on the same post
+POST http://localhost:3001/comment
+Content-Type: application/json
+
+{
+  "content": "I totally agree with this!",
+  "sender": "commenter2",
+  "postId": "<post_id>"
+}
+
+###
+### Create a third comment from same user
+POST http://localhost:3001/comment
+Content-Type: application/json
+
+{
+  "content": "Adding more thoughts here",
+  "sender": "commenter1",
+  "postId": "<post_id>"
+}
+
+###
+### GET all comments
+GET http://localhost:3001/comment
+
+###
+### GET comment by ID (replace <comment_id> with actual ID)
+GET http://localhost:3001/comment/<comment_id>
+
+###
+### GET all comments for a specific post
+GET http://localhost:3001/comment?postId=<post_id>
+
+###
+### UPDATE a comment (replace <comment_id> with actual ID)
+PUT http://localhost:3001/comment/<comment_id>
+Content-Type: application/json
+
+{
+  "content": "I changed my mind about this!",
+  "sender": "commenter1"
+}
+
+###
+### DELETE a comment (replace <comment_id> with actual ID)
+DELETE http://localhost:3001/comment/<comment_id>
