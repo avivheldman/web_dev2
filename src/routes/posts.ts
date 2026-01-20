@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import Post from '../models/post';
+import { authMiddleware, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
@@ -9,11 +10,9 @@ router.get('/', async (req: Request, res: Response) => {
     const { sender } = req.query;
 
     if (sender) {
-      // Get posts by sender
       const posts = await Post.find({ sender: sender as string });
       res.json(posts);
     } else {
-      // Get all posts
       const posts = await Post.find();
       res.json(posts);
     }
@@ -40,19 +39,19 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // POST create a new post
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const { title, content, sender } = req.body;
+    const { title, content } = req.body;
 
-    if (!title || !content || !sender) {
-      res.status(400).json({ error: 'Title, content, and sender are required' });
+    if (!title || !content) {
+      res.status(400).json({ error: 'Title and content are required' });
       return;
     }
 
     const newPost = new Post({
       title,
       content,
-      sender,
+      sender: req.user!._id,
     });
 
     const savedPost = await newPost.save();
@@ -63,25 +62,43 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 // PUT update a post by ID
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const { id } = req.params;
-    const { title, content, sender } = req.body;
+    const { title, content } = req.body;
 
-    const updatedPost = await Post.findByIdAndUpdate(
-      id,
-      { title, content, sender },
+    const updatedPost = await Post.findOneAndUpdate(
+      { _id: req.params.id, sender: req.user!._id },
+      { title, content },
       { new: true, runValidators: true }
     );
 
     if (!updatedPost) {
-      res.status(404).json({ error: 'Post not found' });
+      res.status(404).json({ error: 'Post not found or not owned by you' });
       return;
     }
 
     res.json(updatedPost);
   } catch (error) {
     res.status(500).json({ error: 'Failed to update post' });
+  }
+});
+
+// DELETE a post by ID
+router.delete('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const deletedPost = await Post.findOneAndDelete({
+      _id: req.params.id,
+      sender: req.user!._id,
+    });
+
+    if (!deletedPost) {
+      res.status(404).json({ error: 'Post not found or not owned by you' });
+      return;
+    }
+
+    res.json(deletedPost);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete post' });
   }
 });
 

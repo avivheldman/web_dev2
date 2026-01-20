@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import Comment from '../models/comment';
 import Post from '../models/post';
+import { authMiddleware, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
@@ -10,11 +11,9 @@ router.get('/', async (req: Request, res: Response) => {
     const { postId } = req.query;
 
     if (postId) {
-      // Get comments by post
       const comments = await Comment.find({ postId: postId as string });
       res.json(comments);
     } else {
-      // Get all comments
       const comments = await Comment.find();
       res.json(comments);
     }
@@ -41,16 +40,15 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // POST create a new comment
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const { content, sender, postId } = req.body;
+    const { content, postId } = req.body;
 
-    if (!content || !sender || !postId) {
-      res.status(400).json({ error: 'Content, sender, and postId are required' });
+    if (!content || !postId) {
+      res.status(400).json({ error: 'Content and postId are required' });
       return;
     }
 
-    // Verify the post exists
     const post = await Post.findById(postId);
     if (!post) {
       res.status(404).json({ error: 'Post not found' });
@@ -59,7 +57,7 @@ router.post('/', async (req: Request, res: Response) => {
 
     const newComment = new Comment({
       content,
-      sender,
+      sender: req.user!._id,
       postId,
     });
 
@@ -71,19 +69,18 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 // PUT update a comment by ID
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const { id } = req.params;
-    const { content, sender } = req.body;
+    const { content } = req.body;
 
-    const updatedComment = await Comment.findByIdAndUpdate(
-      id,
-      { content, sender },
+    const updatedComment = await Comment.findOneAndUpdate(
+      { _id: req.params.id, sender: req.user!._id },
+      { content },
       { new: true, runValidators: true }
     );
 
     if (!updatedComment) {
-      res.status(404).json({ error: 'Comment not found' });
+      res.status(404).json({ error: 'Comment not found or not owned by you' });
       return;
     }
 
@@ -94,13 +91,15 @@ router.put('/:id', async (req: Request, res: Response) => {
 });
 
 // DELETE a comment by ID
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const { id } = req.params;
-    const deletedComment = await Comment.findByIdAndDelete(id);
+    const deletedComment = await Comment.findOneAndDelete({
+      _id: req.params.id,
+      sender: req.user!._id,
+    });
 
     if (!deletedComment) {
-      res.status(404).json({ error: 'Comment not found' });
+      res.status(404).json({ error: 'Comment not found or not owned by you' });
       return;
     }
 
