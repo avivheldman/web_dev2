@@ -1,19 +1,17 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
+import mongoose from 'mongoose';
 import Post from '../models/post';
+import { authMiddleware, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
-// GET all posts OR filter by sender (query param)
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', async (req, res: Response) => {
   try {
     const { sender } = req.query;
-
     if (sender) {
-      // Get posts by sender
       const posts = await Post.find({ sender: sender as string });
       res.json(posts);
     } else {
-      // Get all posts
       const posts = await Post.find();
       res.json(posts);
     }
@@ -22,39 +20,32 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-// GET post by ID
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', async (req, res: Response) => {
   try {
-    const { id } = req.params;
-    const post = await Post.findById(id);
-
+    const post = await Post.findById(req.params.id);
     if (!post) {
       res.status(404).json({ error: 'Post not found' });
       return;
     }
-
     res.json(post);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch post' });
   }
 });
 
-// POST create a new post
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const { title, content, sender } = req.body;
-
-    if (!title || !content || !sender) {
-      res.status(400).json({ error: 'Title, content, and sender are required' });
+    const { title, content } = req.body;
+    if (!title || !content) {
+      res.status(400).json({ error: 'Title and content are required' });
       return;
     }
-
+    const userId = new mongoose.Types.ObjectId(req.user!._id);
     const newPost = new Post({
       title,
       content,
-      sender,
+      sender: userId,
     });
-
     const savedPost = await newPost.save();
     res.status(201).json(savedPost);
   } catch (error) {
@@ -62,26 +53,39 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-// PUT update a post by ID
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const { id } = req.params;
-    const { title, content, sender } = req.body;
-
-    const updatedPost = await Post.findByIdAndUpdate(
-      id,
-      { title, content, sender },
+    const { title, content } = req.body;
+    const userId = new mongoose.Types.ObjectId(req.user!._id);
+    const updatedPost = await Post.findOneAndUpdate(
+      { _id: req.params.id, sender: userId },
+      { title, content },
       { new: true, runValidators: true }
     );
-
     if (!updatedPost) {
-      res.status(404).json({ error: 'Post not found' });
+      res.status(404).json({ error: 'Post not found or not owned by you' });
       return;
     }
-
     res.json(updatedPost);
   } catch (error) {
     res.status(500).json({ error: 'Failed to update post' });
+  }
+});
+
+router.delete('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = new mongoose.Types.ObjectId(req.user!._id);
+    const deletedPost = await Post.findOneAndDelete({
+      _id: req.params.id,
+      sender: userId,
+    });
+    if (!deletedPost) {
+      res.status(404).json({ error: 'Post not found or not owned by you' });
+      return;
+    }
+    res.json(deletedPost);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete post' });
   }
 });
 
