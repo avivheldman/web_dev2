@@ -11,7 +11,6 @@ const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || 'your-refresh-t
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_EXPIRY = '7d';
 
-// Generate access token
 const generateAccessToken = (user: { _id: string; username: string; email: string }) => {
   return jwt.sign(
     { _id: user._id, username: user.username, email: user.email },
@@ -20,7 +19,6 @@ const generateAccessToken = (user: { _id: string; username: string; email: strin
   );
 };
 
-// Generate refresh token
 const generateRefreshToken = (user: { _id: string; username: string; email: string }) => {
   return jwt.sign(
     { _id: user._id, username: user.username, email: user.email },
@@ -29,7 +27,35 @@ const generateRefreshToken = (user: { _id: string; username: string; email: stri
   );
 };
 
-// POST /auth/register - Register a new user
+/**
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - email
+ *               - password
+ *             properties:
+ *               username:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *       400:
+ *         description: Bad request
+ */
 router.post('/register', async (req: Request, res: Response) => {
   try {
     const { username, email, password } = req.body;
@@ -39,18 +65,15 @@ router.post('/register', async (req: Request, res: Response) => {
       return;
     }
 
-    // Check if user already exists
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {
       res.status(400).json({ error: 'User with this email or username already exists' });
       return;
     }
 
-    // Hash password
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Create new user
     const newUser = new User({
       username,
       email,
@@ -59,7 +82,6 @@ router.post('/register', async (req: Request, res: Response) => {
 
     const savedUser = await newUser.save();
 
-    // Generate tokens
     const accessToken = generateAccessToken({
       _id: savedUser._id.toString(),
       username: savedUser.username,
@@ -71,7 +93,6 @@ router.post('/register', async (req: Request, res: Response) => {
       email: savedUser.email,
     });
 
-    // Save refresh token to user
     savedUser.refreshTokens.push(refreshToken);
     await savedUser.save();
 
@@ -90,7 +111,32 @@ router.post('/register', async (req: Request, res: Response) => {
   }
 });
 
-// POST /auth/login - Login user
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: Login user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *       401:
+ *         description: Invalid credentials
+ */
 router.post('/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
@@ -100,21 +146,18 @@ router.post('/login', async (req: Request, res: Response) => {
       return;
     }
 
-    // Find user by email
     const user = await User.findOne({ email });
     if (!user) {
       res.status(401).json({ error: 'Invalid email or password' });
       return;
     }
 
-    // Check password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       res.status(401).json({ error: 'Invalid email or password' });
       return;
     }
 
-    // Generate tokens
     const accessToken = generateAccessToken({
       _id: user._id.toString(),
       username: user.username,
@@ -126,7 +169,6 @@ router.post('/login', async (req: Request, res: Response) => {
       email: user.email,
     });
 
-    // Save refresh token to user
     user.refreshTokens.push(refreshToken);
     await user.save();
 
@@ -145,7 +187,31 @@ router.post('/login', async (req: Request, res: Response) => {
   }
 });
 
-// POST /auth/logout - Logout user (invalidate refresh token)
+/**
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     summary: Logout user
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ *       401:
+ *         description: Unauthorized
+ */
 router.post('/logout', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const { refreshToken } = req.body;
@@ -155,7 +221,6 @@ router.post('/logout', authMiddleware, async (req: AuthRequest, res: Response) =
       return;
     }
 
-    // Find user and remove the refresh token
     const user = await User.findById(req.user?._id);
     if (!user) {
       res.status(404).json({ error: 'User not found' });
@@ -171,7 +236,29 @@ router.post('/logout', authMiddleware, async (req: AuthRequest, res: Response) =
   }
 });
 
-// POST /auth/refresh - Refresh access token
+/**
+ * @swagger
+ * /auth/refresh:
+ *   post:
+ *     summary: Refresh access token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Tokens refreshed
+ *       401:
+ *         description: Invalid refresh token
+ */
 router.post('/refresh', async (req: Request, res: Response) => {
   try {
     const { refreshToken } = req.body;
@@ -181,7 +268,6 @@ router.post('/refresh', async (req: Request, res: Response) => {
       return;
     }
 
-    // Verify refresh token
     let decoded;
     try {
       decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET) as {
@@ -194,14 +280,12 @@ router.post('/refresh', async (req: Request, res: Response) => {
       return;
     }
 
-    // Find user and check if refresh token exists
     const user = await User.findById(decoded._id);
     if (!user || !user.refreshTokens.includes(refreshToken)) {
       res.status(401).json({ error: 'Invalid refresh token' });
       return;
     }
 
-    // Generate new tokens
     const newAccessToken = generateAccessToken({
       _id: user._id.toString(),
       username: user.username,
@@ -213,7 +297,6 @@ router.post('/refresh', async (req: Request, res: Response) => {
       email: user.email,
     });
 
-    // Replace old refresh token with new one
     user.refreshTokens = user.refreshTokens.filter((token) => token !== refreshToken);
     user.refreshTokens.push(newRefreshToken);
     await user.save();
