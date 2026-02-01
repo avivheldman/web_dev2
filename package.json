@@ -7,8 +7,8 @@
     "dev": "nodemon --exec ts-node src/app.ts",
     "build": "tsc",
     "start": "node dist/app.js",
-    "test": "NODE_ENV=test jest --runInBand",
-    "test:coverage": "NODE_ENV=test jest --coverage --runInBand"
+    "test": "jest",
+    "test:coverage": "jest --coverage"
   },
   "repository": {
     "type": "git",
@@ -27,7 +27,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.0.2",
     "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^4.6.3"
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

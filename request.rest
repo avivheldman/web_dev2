@@ -1,134 +1,44 @@
-### ========================================
-### POSTS API
-### ========================================
-
-### Create a new post (user123)
-POST http://localhost:3001/post
+### 1. Register
+POST http://localhost:3002/auth/register
 Content-Type: application/json
 
 {
-  "title": "My First Post",
-  "content": "This is the content of my first post",
-  "sender": "user123"
+  "username": "rick_sanchez",
+  "email": "rick@dimension-c137.com",
+  "password": "wubbalubba"
 }
 
 ###
-### Create another post (user456)
-POST http://localhost:3001/post
+### 2. Login (copy the accessToken from response)
+POST http://localhost:3002/auth/login
 Content-Type: application/json
 
 {
-  "title": "Second Post",
-  "content": "This is another post with different content",
-  "sender": "user456"
+  "email": "rick@dimension-c137.com",
+  "password": "wubbalubba"
 }
 
 ###
-### Create a third post (user123 again)
-POST http://localhost:3001/post
+### 3. Create post WITHOUT token (returns 401)
+POST http://localhost:3002/post
 Content-Type: application/json
 
 {
-  "title": "Third Post by user123",
-  "content": "Another post from the same user",
-  "sender": "user123"
+  "title": "Test",
+  "content": "No token"
 }
 
 ###
-### GET all posts
-GET http://localhost:3001/post
-
-###
-### GET post by ID (replace <post_id> with actual ID)
-GET http://localhost:3001/post/<post_id>
-
-###
-### GET posts by sender
-GET http://localhost:3001/post?sender=user123
-
-###
-### GET posts by another sender
-GET http://localhost:3001/post?sender=user456
-
-###
-### UPDATE a post (replace <post_id> with actual ID)
-PUT http://localhost:3001/post/<post_id>
+### 4. Create post WITH token (returns 201)
+POST http://localhost:3002/post
 Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OTdlODRmMzIzYjMzMTAyNjI0NTdiOTEiLCJ1c2VybmFtZSI6InJpY2tfc2FuY2hleiIsImVtYWlsIjoicmlja0BkaW1lbnNpb24tYzEzNy5jb20iLCJpYXQiOjE3Njk4OTkyNjMsImV4cCI6MTc2OTkwMDE2M30.ZK8a2ow1Giq-YjrXrnId7DJPKQsSbnL_j3HrHKZG5LE
 
 {
-  "title": "Updated Title",
-  "content": "This content has been updated!",
-  "sender": "user123"
+  "title": "Hello World",
+  "content": "My first post"
 }
 
 ###
-### Test incomplete post (should return 400 error)
-POST http://localhost:3001/post
-Content-Type: application/json
-
-{
-  "title": "Incomplete Post"
-}
-
-### ========================================
-### COMMENTS API
-### ========================================
-
-###
-### Create a comment on a post (replace <post_id> with actual post ID)
-POST http://localhost:3001/comment
-Content-Type: application/json
-
-{
-  "content": "This is a great post!",
-  "sender": "commenter1",
-  "postId": "<post_id>"
-}
-
-###
-### Create another comment on the same post
-POST http://localhost:3001/comment
-Content-Type: application/json
-
-{
-  "content": "I totally agree with this!",
-  "sender": "commenter2",
-  "postId": "<post_id>"
-}
-
-###
-### Create a third comment from same user
-POST http://localhost:3001/comment
-Content-Type: application/json
-
-{
-  "content": "Adding more thoughts here",
-  "sender": "commenter1",
-  "postId": "<post_id>"
-}
-
-###
-### GET all comments
-GET http://localhost:3001/comment
-
-###
-### GET comment by ID (replace <comment_id> with actual ID)
-GET http://localhost:3001/comment/<comment_id>
-
-###
-### GET all comments for a specific post
-GET http://localhost:3001/comment?postId=<post_id>
-
-###
-### UPDATE a comment (replace <comment_id> with actual ID)
-PUT http://localhost:3001/comment/<comment_id>
-Content-Type: application/json
-
-{
-  "content": "I changed my mind about this!",
-  "sender": "commenter1"
-}
-
-###
-### DELETE a comment (replace <comment_id> with actual ID)
-DELETE http://localhost:3001/comment/<comment_id>
+### 5. Get all posts
+GET http://localhost:3002/post
